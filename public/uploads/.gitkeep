@@ -1,1 +1,0 @@
-# Keep uploads directory in git; files are stored on disk, not in the database.

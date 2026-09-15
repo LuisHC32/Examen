@@ -16,21 +16,33 @@ services:
       retries: 12
       start_period: 10s
 
-  app:
-    build: .
-    container_name: ventasfix-app
+  api:
+    build: ./api
+    container_name: ventasfix-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://ventasfix:ventasfix@db:5432/ventasfix
       JWT_SECRET: ventasfix-jwt-secret-minimo-32-caracteres
       NODE_ENV: production
+      PORT: 3001
+      UPLOADS_DIR: /app/uploads
+      COOKIE_SECURE: "false"
     volumes:
-      - uploads_data:/app/public/uploads
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build: ./web
+    container_name: ventasfix-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

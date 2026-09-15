@@ -2,11 +2,14 @@
 
 ## Decisión
 
-Monolito **Next.js App Router**: UI React y Route Handlers en el mismo proceso. Un repo, un deploy. Sin Nest/Express separado.
+Front y API **separados**, como pide el enunciado de cliente-servidor. Un repo, tres contenedores.
 
 ```
-Browser → UI (cookie httpOnly) → Route Handlers → Prisma → PostgreSQL
-Integradores (Softland) → misma API HTTP con Bearer JWT
+Browser → Front React (nginx :3000)
+           fetch /api y /uploads (proxy) + cookie httpOnly
+         API Express :3001
+           Prisma → PostgreSQL 16
+Integradores (Softland / Postman) → API :3001 con Bearer JWT
 ```
 
 ---
@@ -15,31 +18,31 @@ Integradores (Softland) → misma API HTTP con Bearer JWT
 
 | Capa | Tecnología | Por qué |
 |------|------------|---------|
-| Framework | **Next.js** (App Router) + TypeScript | UI + API en un solo proyecto |
-| UI | React + **Tailwind CSS** | Sidebar y formularios propios (template Drive no aplica) |
+| Front | **Vite** + **React** + React Router + **Tailwind CSS** | UI del backoffice, sin Route Handlers |
 | Toasts | **sonner** | Feedback UX sin `alert` nativo |
-| API | Route Handlers (`app/api/...`) | REST para UI y terceros |
-| Validación | **Zod** | Misma regla en API y forms; sin vacíos; email `@ventasfix.cl` |
+| API | **Express** + TypeScript | REST para UI y terceros |
+| Validación | **Zod** | Misma regla en API; sin vacíos; email `@ventasfix.cl` |
 | ORM / BD | **Prisma** + **PostgreSQL 16** | Modelos claros; migrate + seed reproducibles |
 | Auth | **jose** (JWT) | Bearer en API; cookie httpOnly en UI |
 | Hash | **@node-rs/argon2** (Argon2id) | Password cifrada en BD |
-| Contenedores | Docker + **docker-compose** | `db` + `app` con un comando |
+| Contenedores | Docker Compose | `db` + `api` + `web` |
 
 ---
 
-## Librerías clave (`package.json`)
+## Librerías clave
 
 | Paquete | Uso |
 |---------|-----|
-| `next`, `react`, `react-dom` | App |
-| `typescript`, `@types/node` | Tipado |
-| `tailwindcss` (+ tooling Next) | Estilos |
+| `express`, `cookie-parser`, `cors`, `multer` | API HTTP, cookie, uploads |
+| `react`, `react-dom`, `react-router-dom`, `vite` | Front |
+| `typescript` | Tipado |
+| `tailwindcss` | Estilos |
 | `prisma`, `@prisma/client` | ORM |
 | `zod` | Schemas |
 | `jose` | JWT sign/verify |
 | `@node-rs/argon2` | Hash/verify |
 | `sonner` | Toasts |
-| `tsx` (dev) | Seed / scripts |
+| `tsx` | Arranque y seed de la API |
 
 ---
 
@@ -50,6 +53,8 @@ Integradores (Softland) → misma API HTTP con Bearer JWT
 | `DATABASE_URL` | `postgresql://…` (Postgres 16) |
 | `JWT_SECRET` | ≥ 32 caracteres |
 | `NODE_ENV` | `development` / `production` |
+| `COOKIE_SECURE` | `true` solo en HTTPS |
+| `UPLOADS_DIR` | Directorio de imágenes de producto |
 
 Ver `.env.example` (no versionar `.env`).
 
@@ -65,8 +70,10 @@ Ver `.env.example` (no versionar `.env`).
 | API | `Authorization: Bearer <token>` **o** cookie |
 | Token | Ausente, inválido o expirado → **401** |
 | Logout | `POST /api/auth/logout` → **200**; limpia cookie |
-| Middleware | Protege backoffice; libera `/login` y login API |
+| Front | `GET /api/auth/me` para proteger rutas; `/login` público |
 | Seed | `admin@ventasfix.cl` / `Admin123!` (solo seed) |
+
+El proxy de nginx (y el de Vite en dev) reenvía `/api` y `/uploads` a la API para que la cookie viva en el mismo origen que el front (`localhost:3000`).
 
 ---
 
@@ -76,7 +83,7 @@ Ver `.env.example` (no versionar `.env`).
 - Email de **cliente** (`emailContacto`): email válido; **no** exigir `@ventasfix.cl`
 - `precioNeto` entero **≥ 1**; stocks (`stockActual`, `stockMinimo`, `stockBajo`, `stockAlto`) enteros **≥ 0**
 - `precioVenta = round(precioNeto * 1.19)` a **peso entero** (CLP)
-- `imagen`: archivo en disco (`public/uploads/`); en BD un `String` con la ruta pública (ej. `/uploads/sku-….jpg`). Create = `multipart` con archivo; PUT sin archivo = no cambiar. jpeg/png/webp; inválido o ausente en create → **400**. No bytes/base64 en PostgreSQL.
+- `imagen`: archivo en disco (`uploads/`); en BD un `String` con la ruta pública (ej. `/uploads/sku-….jpg`). Create = `multipart` con archivo; PUT sin archivo = no cambiar. jpeg/png/webp; inválido o ausente en create → **400**. No bytes/base64 en PostgreSQL.
 - **RUT** (`User.rut`, `Client.rutEmpresa`): `String` único; validar **dígito verificador módulo 11** (Chile). Inválido → **400**.
 - Nunca devolver `passwordHash` en JSON
 - **Password:** create exige `password`; **PUT** opcional (vacía o omitida → no se cambia)
@@ -124,42 +131,11 @@ Validación **400**:
 
 ## Prisma
 
-Contexto **Chile**: IVA 19 %, precios en **CLP enteros** (sin centavos).
+Contexto **Chile**: IVA 19 %, precios en **CLP enteros** (sin centavos). Schema en `api/prisma`.
 
-### Schema
+### Seed (`api/prisma/seed.ts`)
 
-- Precios (`precioNeto`, `precioVenta`): `Int` — pesos enteros.
-- Stocks: `Int` ≥ 0 (validar en Zod, no hace falta check SQL).
-- `imagen`: `String` (ruta al archivo en disco, no URL externa ni blob).
-- Uniques: `User.email`, `User.rut`, `Product.sku`, `Client.rutEmpresa`.
-- RUT: validar DV en Zod/`lib` (no en SQL).
-
-```prisma
-model User {
-  email String @unique
-  rut   String @unique
-}
-
-model Product {
-  sku         String @unique
-  imagen      String
-  precioNeto  Int
-  precioVenta Int
-  stockActual Int
-  stockMinimo Int
-  stockBajo   Int
-  stockAlto   Int
-}
-
-model Client {
-  rutEmpresa    String @unique
-  emailContacto String
-}
-```
-
-### Seed (`prisma/seed.ts`)
-
-el admin de login: `admin@ventasfix.cl` / `Admin123!`. Su `rut` debe ser **válido** según el módulo 11.
+Admin de login: `admin@ventasfix.cl` / `Admin123!`. Su `rut` es válido según el módulo 11.
 
 ## Contenedores
 
@@ -167,37 +143,29 @@ el admin de login: `admin@ventasfix.cl` / `Admin123!`. Su `rut` debe ser **váli
 services:
   db:
     image: postgres:16
-  app:
-    build: .
-    ports: ["3000:3000"]
+  api:
+    build: ./api
+    ports: ["3001:3001"]
     volumes:
-      - uploads_data:/app/public/uploads
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  uploads_data:
+      - uploads_data:/app/uploads
+  web:
+    build: ./web
+    ports: ["3000:80"]
 ```
 
-App: migrate deploy + seed + `next start` (preferir `output: "standalone"`).
+API: migrate deploy + seed + Express. Front: nginx sirve el build de Vite y proxea `/api` y `/uploads`.
 
 ---
 
 ## Mapa de carpetas
 
 ```
-app/(auth)/login/
-app/(backoffice)/          # layout sidebar, dashboard, CRUD pages
-app/api/auth|users|products|clients|dashboard/
-components/                # forms, tables, toaster
-lib/                       # prisma, password, auth, validators, api helpers
-public/uploads/            # imágenes de productos (volumen Docker)
-prisma/schema.prisma
-prisma/seed.ts
-Dockerfile
+web/                       # Vite + React (backoffice)
+api/src/                   # Express, validadores, JWT, uploads
+api/src/routes/            # auth, users, products, clients, dashboard
+api/prisma/                # schema, migrate, seed
 docker-compose.yml
-README.md                  # instrucciones en español
+README.md
 ```
 
 ---
@@ -206,6 +174,7 @@ README.md                  # instrucciones en español
 
 ```bash
 docker compose up --build
-# App en http://localhost:3000
+# Front: http://localhost:3000
+# API:  http://localhost:3001
 # Login seed: admin@ventasfix.cl / Admin123!
 ```
