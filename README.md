@@ -6,7 +6,7 @@
 |-------|------|
 | **Estudiante** | Luis Hernandez |
 | **Asignatura** | Desarrollo de software web I |
-| **Evaluación** | Examen transversal
+| **Evaluación** | Examen transversal |
 | **Repositorio** | https://github.com/LuisHC32/Examen |
 
 ---
@@ -22,23 +22,26 @@ docker compose up --build
 
 ---
 
-## 3. Stack 
+## 3. Stack
 
 | Capa | Tecnología |
 |------|------------|
-| **Front** | Next.js 16 (App Router) + React 19 + TypeScript (`app/(auth)`, `app/(backoffice)`, `components/`) |
-| **API** | Next.js Route Handlers en `app/api/**` |
+| **Front** | Vite + React 19 + TypeScript + React Router (`web/`) — páginas en `web/src/pages`, componentes en `web/src/components` |
+| **API** | Express 5 + TypeScript (`api/`) — rutas en `api/src/routes/**` |
 | **Datos** | Prisma (ORM) + PostgreSQL 16 |
 | **Auth** | JWT (`jose`) — cookie httpOnly `ventasfix_token` y/o `Authorization: Bearer <token>` |
 | **Seguridad** | Password con **Argon2id** (`passwordHash` en BD) |
 | **Validación** | **Zod** → errores `400` `{ "error": "Validación", "details": { ... } }` |
-| **Despliegue** | Docker Compose |
+| **UI** | Tailwind CSS 4 + toasts con **sonner** |
+| **Despliegue** | Docker Compose (`web` :3000, `api` :3001, `db`) |
+
+Front y API van separados: el backoffice (Vite) consume la API (Express) vía `web/src/lib/api-client.ts`.
 
 ---
 
 ## 4. Motivo de elección de este stack
 
-Básicamente quería probar otros lenguajes de programación, El año pasado ocupaba PHP, JS, HTML, CSS y MYSQL, ahora a principios de año utilice Laravel, Tailwind y ahora quería dar el salto a otro lenguaje, en este caso, es el stack actual que desarrolle este proyecto.
+Básicamente quería probar otros lenguajes de programación, el año pasado utilice principalmente PHP, JavaScript, HTML, CSS y MySQL. A inicios de este año usé Laravel y Tailwind, y durante este trimestre he trabajado con el stack que desarrolle este examen. (Vite + React + TypeScript (front y back), Express + Prisma + PostgreSQL y Docker para el despliegue.)
 
 ## 5. Variables de entorno
 
