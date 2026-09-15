@@ -1,6 +1,6 @@
 # VentasFix — Backoffice y API
 
-## Datos
+## 1. Datos
 
 | Campo | Dato |
 |-------|------|
@@ -11,15 +11,18 @@
 
 ---
 
-## Levantar
+## 2. Levantar
 
 ```bash
 docker compose up --build
 ```
 
+- App: http://localhost:3000
+- Seed: `admin@ventasfix.cl` / `Admin123!`
+
 ---
 
-## Stack 
+## 3. Stack 
 
 | Capa | Tecnología |
 |------|------------|
@@ -33,11 +36,11 @@ docker compose up --build
 
 ---
 
-## Motivo de elección de este stack
+## 4. Motivo de elección de este stack
 
 Básicamente quería probar otros lenguajes de programación, El año pasado ocupaba PHP, JS, HTML, CSS y MYSQL, ahora a principios de año utilice Laravel, Tailwind y ahora quería dar el salto a otro lenguaje, en este caso, es el stack actual que desarrolle este proyecto.
 
-## Variables de entorno
+## 5. Variables de entorno
 
 Copia `.env.example` si necesitas valores locales. En Docker Compose ya van definidas:
 
@@ -51,9 +54,9 @@ Copia `.env.example` si necesitas valores locales. En Docker Compose ya van defi
 
 ---
 
-## API
+## 6. API
 
-### 2. Autenticación
+### 6.1 Autenticación
 
 ### `POST /api/auth/login` → `200`
 
@@ -79,7 +82,7 @@ Invalida la sesión de cookie.
 
 ---
 
-## Códigos HTTP
+### 6.2 Códigos HTTP
 
 | Caso | Código | Body |
 |------|--------|------|
@@ -97,7 +100,7 @@ Helpers en `lib/http.ts`: `jsonOk`, `jsonCreated`, `jsonNoContent`, `jsonError`,
 
 ---
 
-## 7. Dashboard — `/api/dashboard`
+### 6.3 Dashboard — `/api/dashboard`
 
 ### `GET /api/dashboard` → `200`
 
@@ -116,7 +119,7 @@ curl -s http://localhost:3000/api/dashboard \
 
 ---
 
-## 4. Usuarios — `/api/users`
+### 6.4 Usuarios — `/api/users`
 
 Modelo: `id`, `rut`, `nombre`, `apellido`, `email` (`@ventasfix.cl`), `password` → se guarda como `passwordHash`.
 
@@ -180,7 +183,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
 
 ---
 
-## 5. Productos — `/api/products`
+### 6.5 Productos — `/api/products`
 
 Modelo: `sku`, `nombre`, `descripcionCorta`, `descripcionLarga`, `imagen`, `precioNeto`, `precioVenta` (IVA 19%), `stockActual`, `stockMinimo`, `stockBajo`, `stockAlto`.
 
@@ -249,7 +252,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
 
 ---
 
-## 6. Clientes — `/api/clients`
+### 6.6 Clientes — `/api/clients`
 
 Modelo: `rutEmpresa`, `rubro`, `razonSocial`, `telefono`, `direccion`, `nombreContacto`, `emailContacto`.
 
@@ -313,7 +316,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
 
 ---
 
-## 8. Mapa de controladores ↔ servicios
+## 7 Mapa de controladores ↔ servicios
 
 | Recurso | Rutas | Evidencia |
 |---------|-------|-----------|
@@ -327,9 +330,9 @@ Validadores: `lib/validators/user.ts`, `product.ts`, `client.ts`, `login.ts`.
 Auth de rutas: `lib/auth.ts` (`requireUser`) + `middleware.ts`.
 
 ---
-## Web
+## 8. Web
 
-### 3.1 Login
+### 8.1 Login
 
 1. Abrir http://localhost:3000/login  
 2. Ingresar `admin@ventasfix.cl` / `Admin123!`  
@@ -338,7 +341,7 @@ Auth de rutas: `lib/auth.ts` (`requireUser`) + `middleware.ts`.
 
 ![Login](imgs/sistema-01-login.png)
 
-### 3.2 Dashboard
+### 8.2 Dashboard
 
 Ruta: `/`
 
@@ -351,7 +354,7 @@ Muestra conteos del sistema:
 
 ---
 
-### 3.3 Usuarios
+### 8.3 Usuarios
 
 ### Vistas
 **Listar todos los usuarios `/usuarios`**
@@ -363,7 +366,7 @@ Muestra conteos del sistema:
 
 ---
 
-### 3.4 Productos
+### 8.4 Productos
 
 ### Vistas
 **Listar todos los productos `/productos`**
@@ -375,8 +378,9 @@ Muestra conteos del sistema:
 
 ---
 
-### 3.5 Clientes
+### 8.5 Clientes
 
+### Vistas
 **Listar todos los clientes `/clientes`**
 ![Listado clientes](imgs/sistema-08-clientes-listado.png)  
 **Crear un cliente nuevo `/clientes/nuevo`**
@@ -386,7 +390,7 @@ Muestra conteos del sistema:
 
 ---
 
-### 3.6 Componentes reutilizables
+## 9 Componentes reutilizables
 
 | Componente | Uso |
 |------------|-----|
